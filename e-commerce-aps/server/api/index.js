@@ -37,6 +37,10 @@ app.use('/api/order-product', orderProductRouter);
 app.use('/api/slugs', slugRouter);
 app.use('/api/wishlist', wishlistRouter);
 
+app.get('/', (_req, res) => {
+	res.send('Welcome to the E-commerce API');
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`);

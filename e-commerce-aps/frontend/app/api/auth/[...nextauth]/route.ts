@@ -1,14 +1,9 @@
-import NextAuth from 'next-auth';
-import { Account, User as AuthUser } from 'next-auth';
-import GithubProvider from 'next-auth/providers/github';
+import NextAuth, { AuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import GoogleProvider from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
 import prisma from '@/utils/db';
-import { nanoid } from 'nanoid';
 
-export const authOptions: any = {
-	// Configure one or more authentication providers
+const authOptions: AuthOptions = {
 	providers: [
 		CredentialsProvider({
 			id: 'credentials',
@@ -17,13 +12,19 @@ export const authOptions: any = {
 				email: { label: 'Email', type: 'text' },
 				password: { label: 'Password', type: 'password' },
 			},
-			async authorize(credentials: any): Promise<any> {
+
+			async authorize(credentials) {
 				try {
+					if (!credentials) {
+						throw new Error('No credentials provided');
+					}
+
 					const user = await prisma.user.findFirst({
 						where: {
 							email: credentials.email,
 						},
 					});
+
 					if (user) {
 						const isPasswordCorrect = await bcrypt.compare(
 							credentials.password,
@@ -33,70 +34,24 @@ export const authOptions: any = {
 							return user;
 						}
 					}
+
+					return null;
 				} catch (err: any) {
 					throw new Error(err);
 				}
 			},
 		}),
-		// GithubProvider({
-		//   clientId: process.env.GITHUB_ID ?? "",
-		//   clientSecret: process.env.GITHUB_SECRET ?? "",
-		// }),
-		// GoogleProvider({
-		//   clientId: process.env.GOOGLE_ID ?? "",
-		//   clientSecret: process.env.GOOGLE_SECRET ?? "",
-		// }),
-		// ...add more providers here if you want. You can find them on nextauth website.
 	],
 	callbacks: {
-		async signIn({ user, account }: { user: AuthUser; account: Account }) {
+		async signIn({ account }) {
 			if (account?.provider == 'credentials') {
 				return true;
 			}
-			// if (account?.provider == "github") {
 
-			//   try {
-			//     const existingUser = await prisma.user.findFirst({ where: {email: user.email!} });
-			//     if (!existingUser) {
-
-			//       await prisma.user.create({
-			//           data: {
-			//             id: nanoid() + "",
-			//             email: user.email!
-			//           },
-			//         });
-			//       return true;
-			//     }
-			//     return true;
-			//   } catch (err) {
-			//     console.log("Error saving user", err);
-			//     return false;
-			//   }
-			// }
-
-			// if (account?.provider == "google") {
-
-			//   try {
-			//     const existingUser = await prisma.user.findFirst({where: { email: user.email! }});
-			//     if (!existingUser) {
-			//       await prisma.user.create({
-			//           data: {
-			//             id: nanoid() + "",
-			//             email: user.email!
-			//           },
-			//         });
-
-			//       return true;
-			//     }
-			//     return true;
-			//   } catch (err) {
-			//     console.log("Error saving user", err);
-			//     return false;
-			//   }
-			// }
+			return false;
 		},
 	},
 };
 
-export const handler = NextAuth(authOptions);
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
